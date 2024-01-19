@@ -13,7 +13,7 @@ def get_embedding(model, tokenizer, code: str):
 
 
 def kernel_entropy(Y, kernel=lambda x, y: metrics.pairwise.rbf_kernel(x, y, gamma=None)):
-    # author = sebastian G. Gruber
+    # author = Sebastian G. Gruber
 
     """
     Kernel entropy, estimator of -||P||_k^2 with Y_1, ..., Y_n ~ P via -1/n(n-1) \sum_{j=\=i} k( Y_i, Y_j )
@@ -23,6 +23,7 @@ def kernel_entropy(Y, kernel=lambda x, y: metrics.pairwise.rbf_kernel(x, y, gamm
       YY = kernel(Y, Y)
       # length of Y
       n = YY.shape[0]
+      print(YY)
       return (YY.diagonal().sum() - YY.sum())/(n*(n-1))
 
 
@@ -31,19 +32,15 @@ def deaths(model, tokenizer):
     passed = 0
     killed = 0
     dead_man = []
-    with jsonlines.open("Codellama13b-human-eval-1(38).jsonl") as reader:
+    with jsonlines.open("/home/maxim/Code/Coding_Benchamark_SB/src/CLR10.jsonl") as reader:
         for obj in reader:
             print(obj["task_id"])
             try:
                 get_embedding(model, tokenizer, obj["completion"])
                 passed += 1
             except:
-                print(len(obj["task_id"]))
-                dead_man.append(obj["task_id"])
                 killed += 1
         print("pass ", passed, "killed: ", killed)
-        for item in dead_man:
-            print(obj["task_id"])
 
 
 def get_length(test: int):
@@ -56,7 +53,7 @@ def get_length(test: int):
         over_1000 = []
         longest = {"completion": "ja"}
 
-        with jsonlines.open("Codellama13b-human-eval-1(38).jsonl") as reader:
+        with jsonlines.open("/home/maxim/Code/Coding_Benchamark_SB/src/CLR10.jsonl") as reader:
 
             for obj in reader:
                 # print("id: ", obj["task_id"], "length: ", len(obj["completion"]))
@@ -88,7 +85,7 @@ def get_length(test: int):
         under_512_tot = 0
         counter = 0
 
-        with jsonlines.open("Codellama13b-human-eval-1(38).jsonl") as reader:
+        with jsonlines.open("src/CLR1.jsonl:Zone.Identifier") as reader:
 
             for obj in reader:
                 if counter == 10:
@@ -111,4 +108,4 @@ def get_length(test: int):
             print(total, under_512_tot, over_512_tot)
 
 
-get_length(1)
+# get_length(1)
