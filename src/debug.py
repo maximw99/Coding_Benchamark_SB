@@ -1,57 +1,6 @@
-import torch
-import sklearn.metrics as metrics
+import helper
 import jsonlines
 import numpy as np
-
-
-def get_embedding(model, tokenizer, code: str):
-
-    code_tokens = tokenizer.tokenize(code, max_length=510)
-    tokens = [tokenizer.cls_token]+code_tokens+[tokenizer.eos_token]
-    tokens_ids = tokenizer.convert_tokens_to_ids(tokens)
-    context_embeddings=model(torch.tensor(tokens_ids)[None,:])[0]
-
-    return context_embeddings[0]
-
-
-def kernel_entropy(Y, kernel):
-    # author = Sebastian G. Gruber
-
-    """
-    Kernel entropy, estimator of -||P||_k^2 with Y_1, ..., Y_n ~ P via -1/n(n-1) \sum_{j=\=i} k( Y_i, Y_j )
-    Rows of Y are instances, columns are features
-    """
-    with torch.no_grad():
-      YY = kernel(Y, Y)
-      # length of Y
-      n = YY.shape[0]
-      # print(YY)
-      return (YY.diagonal().sum() - YY.sum())/(n*(n-1))
-
-
-def get_block(data, start, end):
-    block = []
-    for i in range(start, end):
-        block.append(data[i])
-    return block
-
-
-def form_emb(data, model, tokenizer):
-    embeddings = []
-    for line in data:
-        # print(line["task_id"])
-        try:
-            embedding = get_embedding(model, tokenizer, line["completion"])
-            fix = embedding.detach()
-            embeddings.append(fix)
-        except:
-            continue
-            
-
-    embeddings_mean = [i.mean(0).detach().numpy() for i in embeddings]
-    embeddings_mean = np.array(embeddings_mean)
-            
-    return embeddings_mean
 
 
 def embeddings_fails(model, tokenizer):
@@ -63,7 +12,7 @@ def embeddings_fails(model, tokenizer):
         for obj in reader:
             print(obj["task_id"])
             try:
-                get_embedding(model, tokenizer, obj["completion"])
+                helper.get_embedding(model, tokenizer, obj["completion"])
                 passed += 1
             except:
                 killed += 1
