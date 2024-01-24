@@ -39,7 +39,7 @@ def get_block(data, start, end):
 def form_emb(data, model, tokenizer):
     embeddings = []
     for line in data:
-        # print(line["task_id"])
+        print(line["task_id"])
         try:
             embedding = get_embedding(model, tokenizer, line["completion"])
             fix = embedding.detach()
