@@ -49,6 +49,28 @@ def get_embedding_bert(model, tokenizer, code: str):
     return context_embeddings[0]
 
 
+def write_embeddings(emb: [], file_name: str):
+    l = 0
+    results = []
+    for i in emb:
+        res = {"nr": str(l), "emb": i.tolist()}
+        results.append(res)
+        l = l+1
+
+    with open(file_name + ".jsonl", "w") as file:
+        json.dump(results, file)
+
+
+def read_embeddings(file: str):
+    embeddings = []
+    with open(file, "r") as file:
+        json_obj = json.load(file)
+    for j in json_obj:
+        emb = np.array(j["emb"])
+        embeddings.append(emb)
+    return embeddings
+
+
 def kernel_entropy(Y, kernel):
     # author = Sebastian G. Gruber
 
