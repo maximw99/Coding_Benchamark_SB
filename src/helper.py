@@ -3,6 +3,7 @@ import torch
 import numpy as np
 import json
 import sklearn.metrics as metrics
+from torch.nn.utils.rnn import pad_sequence
 
 
 def get_pass(data):
@@ -27,10 +28,26 @@ def compare_results(x, y):
     return compared
 
 
-def get_entropies(embeddings):
+def get_entropies_rbf(embeddings):
     entropies = []
     for x in embeddings:
         entropy = kernel_entropy(x, kernel=lambda x, y: metrics.pairwise.rbf_kernel(x, y, gamma=None))
+        entropies.append(entropy)
+    return entropies
+
+
+def get_entropies_laplace(embeddings):
+    entropies = []
+    for x in embeddings:
+        entropy = kernel_entropy(x, kernel=lambda x, y: metrics.pairwise.laplacian_kernel(x, y))
+        entropies.append(entropy)
+    return entropies
+
+
+def get_entropies_poly(embeddings):
+    entropies = []
+    for x in embeddings:
+        entropy = kernel_entropy(x, kernel=lambda x, y: metrics.pairwise.polynomial_kernel(x, y, degree=2))
         entropies.append(entropy)
     return entropies
 
@@ -85,14 +102,26 @@ def kernel_entropy(Y, kernel):
       # print(YY)
       return (YY.diagonal().sum() - YY.sum())/(n*(n-1))
     
-    def get_block(data, start, end):
+
+def get_block(data, start, end):
         block = []
         for i in range(start, end):
             block.append(data[i])
         return block
 
 
-def form_emb(blocks, model, tokenizer):
+def force_seq_len(seqs, length):
+    # author = Sebastian G. Gruber
+
+    seqs = [torch.from_numpy(seq) for seq in seqs]
+    dummy_seq = [torch.zeros((length,))]
+    all_seqs = pad_sequence(dummy_seq + seqs)
+    # rm dummy seq and cut to desired length
+    seqs = all_seqs[:,1:][:length]
+    return seqs
+
+
+def form_emb(blocks, model, tokenizer, mode):
     l = 0
     embeddings = []
     for block in blocks:
@@ -103,9 +132,17 @@ def form_emb(blocks, model, tokenizer):
             except:
                 continue
             emb_block.append(embedding)
-        embeddings_mean = [i.mean(0).detach().numpy() for i in emb_block]
-        embeddings_mean = np.array(embeddings_mean)
-        embeddings.append(embeddings_mean)
+
+        if mode == "mean":
+            embeddings_mean = [i.mean(0).detach().numpy() for i in emb_block]
+            embeddings_mean = np.array(embeddings_mean)
+            embeddings.append(embeddings_mean)
+
+        if mode == "pad":
+            test = np.array(emb_block)
+            seqs = force_seq_len(test, 512)
+            embeddings.append(seqs)
+
         print(l)
         l = l+1
             
