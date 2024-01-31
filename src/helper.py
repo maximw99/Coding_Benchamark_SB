@@ -4,6 +4,7 @@ import numpy as np
 import json
 import sklearn.metrics as metrics
 from torch.nn.utils.rnn import pad_sequence
+import evaluate
 
 
 def get_pass(data):
@@ -26,6 +27,28 @@ def compare_results(x, y):
         res = (x[i], y[i])
         compared.append(res)
     return compared
+
+
+def lexical_sim(samples_1, samples_10):
+
+    rouge = evaluate.load("rouge")
+    sims = []
+    completions = []
+
+    for samp in samples_10:
+        completions.append(samp["completion"])
+    
+    blocks = split_into_blocks(completions, 10)
+
+    for i in range(0, 164):
+        print(i)
+        predictions = [samples_1[i]["completion"]]
+        references = [blocks[i]]
+        result = rouge.compute(predictions=predictions, references=references)
+        sims.append(result["rougeLsum"])
+        i = i+1
+
+    return sims
 
 
 def get_entropies_rbf(embeddings):
@@ -103,6 +126,16 @@ def kernel_entropy(Y, kernel):
       return (YY.diagonal().sum() - YY.sum())/(n*(n-1))
     
 
+def convert_pred(pred):
+    arr = []
+    for i in pred:
+        if i == False:
+            arr.append(0)
+        else:
+            arr.append(1)
+    return arr
+    
+
 def get_block(data, start, end):
         block = []
         for i in range(start, end):
@@ -139,9 +172,9 @@ def form_emb(blocks, model, tokenizer, mode):
             embeddings.append(embeddings_mean)
 
         if mode == "pad":
-            test = np.array(emb_block)
-            seqs = force_seq_len(test, 512)
-            embeddings.append(seqs)
+            embeddings_pad = [force_seq_len(i.detach().numpy(), 512) for i in emb_block]
+            # embeddings_pad = np.array(embeddings_pad)
+            # embeddings.append(embeddings_pad)
 
         print(l)
         l = l+1
