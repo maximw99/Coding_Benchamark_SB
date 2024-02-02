@@ -3,7 +3,6 @@ import torch
 import numpy as np
 import json
 import sklearn.metrics as metrics
-from torch.nn.utils.rnn import pad_sequence
 import evaluate
 
 
@@ -45,7 +44,7 @@ def lexical_sim(samples_1, samples_10):
         predictions = [samples_1[i]["completion"]]
         references = [blocks[i]]
         result = rouge.compute(predictions=predictions, references=references)
-        sims.append(result["rougeLsum"])
+        sims.append(result)
         i = i+1
 
     return sims
@@ -87,6 +86,43 @@ def get_embedding_bert(model, tokenizer, code: str):
     context_embeddings=model(torch.tensor(tokens_ids)[None,:])[0]
 
     return context_embeddings[0]
+
+
+def write_simlex(sims: [], file_name: str):
+
+    l = 0
+    results = []
+    for sim in sims:
+        res = {"nr": str(l), "rouge_1": sim["rouge1"], "rouge_2": sim["rouge2"], "rouge_L": sim["rougeL"], "rouge_Lsum": sim["rougeLsum"]}
+        results.append(res)
+        l = l+1
+
+    with open(file_name + ".jsonl", "w") as file:
+        json.dump(results, file)
+
+
+def read_simlex(file: str):
+    
+    lex_sims = []
+    with open(file, "r") as file:
+        json_obj = json.load(file)
+    for item in json_obj:
+        sim = {}
+        sim["nr"] = item["nr"]
+        sim["rouge1"] = item["rouge_1"]
+        sim["rouge2"] = item["rouge_2"]
+        sim["rougeL"] = item["rouge_L"]
+        sim["rougeLsum"] = item["rouge_Lsum"]
+        lex_sims.append(sim) 
+
+    return lex_sims  
+
+
+def get_sim_solo(sims: [], opt: str):
+    lex_sim_solo = []
+    for item in sims:
+        lex_sim_solo.append(item[opt])
+    return lex_sim_solo
 
 
 def write_embeddings(emb: [], file_name: str):
@@ -143,18 +179,7 @@ def get_block(data, start, end):
         return block
 
 
-def force_seq_len(seqs, length):
-    # author = Sebastian G. Gruber
-
-    seqs = [torch.from_numpy(seq) for seq in seqs]
-    dummy_seq = [torch.zeros((length,))]
-    all_seqs = pad_sequence(dummy_seq + seqs)
-    # rm dummy seq and cut to desired length
-    seqs = all_seqs[:,1:][:length]
-    return seqs
-
-
-def form_emb(blocks, model, tokenizer, mode):
+def form_emb(blocks, model, tokenizer):
     l = 0
     embeddings = []
     for block in blocks:
@@ -166,15 +191,11 @@ def form_emb(blocks, model, tokenizer, mode):
                 continue
             emb_block.append(embedding)
 
-        if mode == "mean":
-            embeddings_mean = [i.mean(0).detach().numpy() for i in emb_block]
-            embeddings_mean = np.array(embeddings_mean)
-            embeddings.append(embeddings_mean)
+        
+        embeddings_mean = [i.mean(0).detach().numpy() for i in emb_block]
+        embeddings_mean = np.array(embeddings_mean)
+        embeddings.append(embeddings_mean)
 
-        if mode == "pad":
-            embeddings_pad = [force_seq_len(i.detach().numpy(), 512) for i in emb_block]
-            # embeddings_pad = np.array(embeddings_pad)
-            # embeddings.append(embeddings_pad)
 
         print(l)
         l = l+1
