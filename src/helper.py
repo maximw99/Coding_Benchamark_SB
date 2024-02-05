@@ -88,6 +88,13 @@ def get_embedding_bert(model, tokenizer, code: str):
     return context_embeddings[0]
 
 
+def get_embedding_e5(model, code: str):
+
+    embedding = model.encode(code, normalize_embeddings=True)
+
+    return embedding
+
+
 def write_simlex(sims: [], file_name: str):
 
     l = 0
@@ -179,7 +186,7 @@ def get_block(data, start, end):
         return block
 
 
-def form_emb(blocks, model, tokenizer):
+def form_emb_bert(blocks, model, tokenizer):
     l = 0
     embeddings = []
     for block in blocks:
@@ -196,6 +203,27 @@ def form_emb(blocks, model, tokenizer):
         embeddings_mean = np.array(embeddings_mean)
         embeddings.append(embeddings_mean)
 
+
+        print(l)
+        l = l+1
+            
+    return embeddings
+
+
+def form_emb_e5(blocks, model):
+    l = 0
+    embeddings = []
+    for block in blocks:
+        emb_block = []
+        for code in block:
+            try:
+                embedding = get_embedding_e5(model, code["completion"])
+            except:
+                continue
+            emb_block.append(embedding)
+
+        
+        embeddings.append(np.array(emb_block))
 
         print(l)
         l = l+1
